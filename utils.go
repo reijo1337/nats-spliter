@@ -26,7 +26,7 @@ type (
 		token               string
 		pingInterval        time.Duration
 		maxPingsOutstanding int
-		reconectWait        time.Duration
+		reconnectWait       time.Duration
 		maxReconnects       int
 	}
 
@@ -66,8 +66,8 @@ func (nc natsConfig) connect() (*nats.Conn, error) {
 	if nc.maxPingsOutstanding != 0 {
 		opts = append(opts, nats.MaxPingsOutstanding(nc.maxPingsOutstanding))
 	}
-	if nc.reconectWait > 0 {
-		opts = append(opts, nats.ReconnectWait(nc.reconectWait))
+	if nc.reconnectWait > 0 {
+		opts = append(opts, nats.ReconnectWait(nc.reconnectWait))
 	}
 	if nc.maxReconnects != 0 {
 		opts = append(opts, nats.MaxReconnects(nc.maxReconnects))
