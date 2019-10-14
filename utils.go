@@ -1,43 +1,164 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"log"
+	"time"
 
 	nats "github.com/nats-io/nats.go"
 	stan "github.com/nats-io/stan.go"
 )
 
-type stanConnect struct {
-	natsConn *nats.Conn
-	stanConn stan.Conn
-	sub      stan.Subscription
+var errNoMsgHandler = errors.New("empty subscribition msg handler")
+
+type (
+	// STAN connects holder
+	stanConnect struct {
+		natsConn *nats.Conn
+		stanConn stan.Conn
+		sub      stan.Subscription
+	}
+
+	// NATS connection config
+	natsConfig struct {
+		url                 string
+		token               string
+		pingInterval        time.Duration
+		maxPingsOutstanding int
+		reconectWait        time.Duration
+		maxReconnects       int
+	}
+
+	// STAN connection config
+	stanConfig struct {
+		clusterID, clientID string
+		natsConn            *nats.Conn
+		connectWait         time.Duration
+		pings               [2]int
+		conLostHandler      stan.ConnectionLostHandler
+	}
+
+	// Subscribition config
+	subConfig struct {
+		subject               string
+		group                 string
+		handler               stan.MsgHandler
+		setManualAckMode      bool
+		maxInflight           int
+		ackWait               time.Duration
+		durableName           string
+		startTime             string
+		startAtTimeDelta      time.Duration
+		startAtSequence       uint64
+		startWithLastReceived bool
+	}
+)
+
+func (nc natsConfig) connect() (*nats.Conn, error) {
+	opts := make([]nats.Option, 0, 5)
+	if nc.token != "" {
+		opts = append(opts, nats.Token(nc.token))
+	}
+	if nc.pingInterval > 0 {
+		opts = append(opts, nats.PingInterval(nc.pingInterval))
+	}
+	if nc.maxPingsOutstanding != 0 {
+		opts = append(opts, nats.MaxPingsOutstanding(nc.maxPingsOutstanding))
+	}
+	if nc.reconectWait > 0 {
+		opts = append(opts, nats.ReconnectWait(nc.reconectWait))
+	}
+	if nc.maxReconnects != 0 {
+		opts = append(opts, nats.MaxReconnects(nc.maxReconnects))
+	}
+	return nats.Connect(nc.url, opts...)
 }
 
-func getStanConnect(natsURL, clusterID, clientID, subject string, handler stan.MsgHandler,
-	natsOpts []nats.Option, stanOpts []stan.Option, subOpts []stan.SubscriptionOption) (*stanConnect, error) {
-	natsConn, err := nats.Connect(natsURL, natsOpts...)
+func (sc stanConfig) connect(natsConn *nats.Conn) (stan.Conn, error) {
+	opts := make([]stan.Option, 0, 5)
+	opts = append(opts, stan.NatsConn(natsConn))
+	if sc.connectWait > 0 {
+		opts = append(opts, stan.ConnectWait(sc.connectWait))
+	}
+	if sc.pings != [2]int{} {
+		opts = append(opts, stan.Pings(sc.pings[0], sc.pings[1]))
+	}
+	if sc.conLostHandler != nil {
+		opts = append(opts, stan.SetConnectionLostHandler(sc.conLostHandler))
+	} else {
+		opts = append(opts, stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
+			log.Fatalf("stan connection lost, reason: %v\n", reason)
+		}))
+	}
+	return stan.Connect(sc.clusterID, sc.clientID)
+}
+
+func (sc *subConfig) connect(stanConn stan.Conn) (stan.Subscription, error) {
+	if sc == nil {
+		return nil, nil
+	}
+	if sc.handler == nil {
+		return nil, errNoMsgHandler
+	}
+	opts := make([]stan.SubscriptionOption, 0, 8)
+	if sc.setManualAckMode {
+		opts = append(opts, stan.SetManualAckMode())
+	}
+	if sc.maxInflight > 0 {
+		opts = append(opts, stan.MaxInflight(sc.maxInflight))
+	}
+	if sc.ackWait > 0 {
+		opts = append(opts, stan.AckWait(sc.ackWait))
+	}
+	if sc.durableName != "" {
+		opts = append(opts, stan.DurableName(sc.durableName))
+	}
+	if sc.startTime != "" {
+		startTime, err := time.Parse("2006-01-02T15:04:05", sc.startTime)
+		if err != nil {
+			return nil, fmt.Errorf("invalid start time for subscribition [%s]: %v", sc.startTime, err)
+		}
+		opts = append(opts, stan.StartAtTime(startTime))
+	}
+	if sc.startAtTimeDelta > 0 {
+		opts = append(opts, stan.StartAtTimeDelta(sc.startAtTimeDelta))
+	}
+	if sc.startAtSequence > 0 {
+		opts = append(opts, stan.StartAtSequence(sc.startAtSequence))
+	}
+	if sc.startWithLastReceived {
+		opts = append(opts, stan.StartWithLastReceived())
+	}
+	return stanConn.QueueSubscribe(sc.subject, sc.group, sc.handler, opts...)
+}
+
+func getStanConnect(natsCfg natsConfig, stanCfg stanConfig, subCfg *subConfig) (*stanConnect, error) {
+	natsConn, err := natsCfg.connect()
 	if err != nil {
-		return nil, fmt.Errorf("nats connect to url %s: %v", natsURL, err)
+		return nil, fmt.Errorf("nats %s connect: %v", natsCfg.url, err)
 	}
 
-	stanOpts = append(stanOpts, stan.NatsConn(natsConn))
-	stanConn, err := stan.Connect(clusterID, clientID, stanOpts...)
+	stanConn, err := stanCfg.connect(natsConn)
 	if err != nil {
 		natsConn.Close()
-		return nil, fmt.Errorf("stan connect to cluster %s by client %s: %v", clusterID, clientID, err)
+		return nil, fmt.Errorf("stan connect: %v", err)
 	}
-	sub, err := stanConn.Subscribe(subject, handler, subOpts...)
+
+	sub, err := subCfg.connect(stanConn)
 	if err != nil {
 		stanConn.Close()
 		natsConn.Close()
-		return nil, fmt.Errorf("subscribe on subject %s: %v", subject, err)
+		return nil, fmt.Errorf("subscribe on subject %s: %v", subCfg.subject, err)
 	}
 	return &stanConnect{natsConn, stanConn, sub}, nil
 }
 
 func (sc *stanConnect) Close() error {
-	if err := sc.sub.Unsubscribe(); err != nil {
-		return fmt.Errorf("unsubscribe: %v", err)
+	if sc.sub != nil {
+		if err := sc.sub.Unsubscribe(); err != nil {
+			return fmt.Errorf("unsubscribe: %v", err)
+		}
 	}
 	if err := sc.stanConn.Close(); err != nil {
 		return fmt.Errorf("close stan: %v", err)
