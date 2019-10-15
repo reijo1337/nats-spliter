@@ -53,6 +53,20 @@ type (
 		startAtSequence       uint64
 		startWithLastReceived bool
 	}
+
+	// destination configs
+	dstConfig struct {
+		SeparatorValue           string `json:"separator_value"`
+		NatsURL                  string `json:"nats_url"`
+		NatsToken                string `json:"nats_token"`
+		NatsPingInterval         string `json:"nats_ping_interval"`
+		NatsMaxPingsOutstangding int    `json:"nats_max_pings_outstanding"`
+		NatsReconnectWait        string `json:"nats_reconnect_wait"`
+		NatsMaxReconnects        int    `json:"nats_max_reconnects"`
+		StanCluster              string `json:"stan_cluster"`
+		StanConnectWait          string `json:"stan_connect_wait"`
+		StanPings                [2]int `json:"stan_pings"`
+	}
 )
 
 func (nc natsConfig) connect() (*nats.Conn, error) {
@@ -84,13 +98,10 @@ func (sc stanConfig) connect(natsConn *nats.Conn) (stan.Conn, error) {
 	if sc.pings != [2]int{} {
 		opts = append(opts, stan.Pings(sc.pings[0], sc.pings[1]))
 	}
-	if sc.conLostHandler != nil {
-		opts = append(opts, stan.SetConnectionLostHandler(sc.conLostHandler))
-	} else {
-		opts = append(opts, stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
-			log.Fatalf("stan connection lost, reason: %v\n", reason)
-		}))
-	}
+
+	opts = append(opts, stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
+		log.Fatalf("stan connection lost, reason: %v\n", reason)
+	}))
 	return stan.Connect(sc.clusterID, sc.clientID)
 }
 

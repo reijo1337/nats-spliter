@@ -1,0 +1,14 @@
+[
+    {
+        "separator_value": "ru",
+        "nats_url": "",
+        "nats_token": "",
+        "nats_ping_interval": "",
+        "nats_max_pings_outstanding": 0,
+        "nats_reconnect_wait": "",
+        "nats_max_reconnects": 0,
+        "stan_cluster": "",
+        "stan_connect_wait": "",
+        "stan_pings": [3,20]
+    }
+]
