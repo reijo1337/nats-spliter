@@ -9,6 +9,7 @@
         "nats_max_reconnects": 0,
         "stan_cluster": "",
         "stan_connect_wait": "",
-        "stan_pings": [3,20]
+        "stan_pings": [3,20],
+        "stan_subject": ""
     }
 ]

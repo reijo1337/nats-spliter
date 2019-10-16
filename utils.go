@@ -10,7 +10,11 @@ import (
 	stan "github.com/nats-io/stan.go"
 )
 
-var errNoMsgHandler = errors.New("empty subscribition msg handler")
+var (
+	errNoSeparator  = errors.New("no separator field in input")
+	errInvalidJSON  = errors.New("invalid json, must start with '{' or '['")
+	errNoMsgHandler = errors.New("empty subscribition msg handler")
+)
 
 type (
 	// STAN connects holder
@@ -18,6 +22,7 @@ type (
 		natsConn *nats.Conn
 		stanConn stan.Conn
 		sub      stan.Subscription
+		subject  string // optional, required for dsts because they have no subscribitions
 	}
 
 	// NATS connection config
@@ -66,6 +71,7 @@ type (
 		StanCluster              string `json:"stan_cluster"`
 		StanConnectWait          string `json:"stan_connect_wait"`
 		StanPings                [2]int `json:"stan_pings"`
+		StanSubject              string `json:"stan_subject"`
 	}
 )
 
@@ -144,7 +150,7 @@ func (sc *subConfig) connect(stanConn stan.Conn) (stan.Subscription, error) {
 	return stanConn.QueueSubscribe(sc.subject, sc.group, sc.handler, opts...)
 }
 
-func getStanConnect(natsCfg natsConfig, stanCfg stanConfig, subCfg *subConfig) (*stanConnect, error) {
+func getStanConnect(natsCfg natsConfig, stanCfg stanConfig, subCfg *subConfig, subject string) (*stanConnect, error) {
 	natsConn, err := natsCfg.connect()
 	if err != nil {
 		return nil, fmt.Errorf("nats %s connect: %v", natsCfg.url, err)
@@ -162,7 +168,7 @@ func getStanConnect(natsCfg natsConfig, stanCfg stanConfig, subCfg *subConfig) (
 		natsConn.Close()
 		return nil, fmt.Errorf("subscribe on subject %s: %v", subCfg.subject, err)
 	}
-	return &stanConnect{natsConn, stanConn, sub}, nil
+	return &stanConnect{natsConn, stanConn, sub, subject}, nil
 }
 
 func (sc *stanConnect) Close() error {

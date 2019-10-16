@@ -27,7 +27,7 @@ func parseDsts(dstFileLoc, clientID string) (map[string]*stanConnect, error) {
 		if err != nil {
 			return nil, fmt.Errorf("get nats/stan config from %d dst config: %v", i, err)
 		}
-		con, err := getStanConnect(natsCfg, stanCfg, nil)
+		con, err := getStanConnect(natsCfg, stanCfg, nil, dsts[i].StanSubject)
 		if err != nil {
 			return nil, fmt.Errorf("connect to %d dst: %v", i, err)
 		}
@@ -83,4 +83,30 @@ func (dc *dstConfig) UnmarshalJSON(data []byte) error {
 	}
 	*dc = dstConfig(*tmp)
 	return nil
+}
+
+// Proccess one message, try to get separator
+func getSeparator(msg []byte, separatorName string) (string, error) {
+	var data map[string]interface{}
+	if err := json.Unmarshal(msg, &data); err != nil {
+		return "", fmt.Errorf("unmarshal message: %v", err)
+	}
+	sep, ok := data[separatorName].(string)
+	if !ok {
+		return "", errNoSeparator
+	}
+	return sep, nil
+}
+
+// Proccess one array message, try to get separator
+func getSeparatorArray(msg []byte, separatorName string) (string, error) {
+	var data []map[string]interface{}
+	if err := json.Unmarshal(msg, &data); err != nil {
+		return "", fmt.Errorf("unmarshal message: %v", err)
+	}
+	sep, ok := data[0][separatorName].(string)
+	if !ok {
+		return "", errNoSeparator
+	}
+	return sep, nil
 }

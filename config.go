@@ -1,9 +1,7 @@
 package main
 
 import (
-	"crypto/md5"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -38,6 +36,10 @@ type config struct {
 			StartWithLastReceived bool
 		}
 	}
+	Delay struct {
+		Loop    time.Duration `default:"3s"`
+		IfError time.Duration `default:"3s"`
+	}
 	StanClient       string `envconfig:"STAN_CLIENT" required:"true"`
 	SeparatorName    string `envconfig:"SEPARATOR_NAME" required:"true"`
 	SendToAllOnError bool   `default:"true" envconfig:"SEND_TO_ALL"`
@@ -49,22 +51,5 @@ func parseConfig() (out config, err error) {
 	if err := envconfig.Process("", &out); err != nil {
 		return out, fmt.Errorf("process envconfig: %v", err)
 	}
-	// if out.StanClient == "" {
-	// 	cid, err := getClient()
-	// 	if err != nil {
-	// 		return out, fmt.Errorf("generate client id: %v", err)
-	// 	}
-	// 	out.SRC.Stan.Client = cid
-	// }
 	return out, nil
-}
-
-func getClient() (string, error) {
-	hostName, err := os.Hostname()
-	if err != nil {
-		return "", err
-	}
-	hash := md5.Sum([]byte(hostName))
-	return fmt.Sprintf("%x-%x-%x-%x-%x", hash[:4], hash[4:6], hash[6:8], hash[8:10], hash[10:]), nil
-
 }
