@@ -1,7 +1,7 @@
 [
     {
         "separator_value": "ru",
-        "nats_url": "",
+        "nats_url": "stan:4222",
         "nats_token": "",
         "nats_ping_interval": "",
         "nats_max_pings_outstanding": 0,

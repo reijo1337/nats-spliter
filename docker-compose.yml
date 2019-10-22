@@ -1,0 +1,22 @@
+version: '3'
+services:
+  stan:
+    image: nats-streaming
+    volumes:
+      - ./config:/cfg
+    command: -sc /cfg/server.conf
+    ports:
+      - "4222:4222"
+  splitter:
+    build: .
+    restart: always
+    depends_on:
+      - stan
+    volumes:
+      - ./config:/cfg
+    environment:
+      SRC_NATS_URL: "stan:4222"
+      SRS_STAN_CLUSTER: "test_cluster_name"
+      SUBJECT: "msgs"
+      STAN_CLIENT: "test_compose"
+      SEPARATOR_NAME: "sep"
