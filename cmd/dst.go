@@ -23,7 +23,7 @@ func parseDsts(dstFileLoc, clientID string) (map[string]*stanConnect, error) {
 	}
 	out := make(map[string]*stanConnect, len(dsts))
 	for i := range dsts {
-		natsCfg, stanCfg, err := dsts[i].getConnectConfigs(clientID)
+		natsCfg, stanCfg, err := dsts[i].getConnectConfigs(fmt.Sprintf("%s-sub-%d", clientID, i))
 		if err != nil {
 			return nil, fmt.Errorf("get nats/stan config from %d dst config: %v", i, err)
 		}

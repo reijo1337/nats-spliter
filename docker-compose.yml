@@ -15,8 +15,9 @@ services:
     volumes:
       - ./config:/cfg
     environment:
-      SRC_NATS_URL: "stan:4222"
-      SRS_STAN_CLUSTER: "test_cluster_name"
-      SUBJECT: "msgs"
+      SRC_NATS_URL: "nats://10.99.100.156:4222"
+      SRC_STAN_CLUSTER: "test_cluster_name"
+      SRC_SUB_SUBJECT: "producer"
       STAN_CLIENT: "test_compose"
       SEPARATOR_NAME: "sep"
+      DST_FILE_LOC: "/cfg/dsts.json"

@@ -1,15 +1,8 @@
 [
     {
         "separator_value": "ru",
-        "nats_url": "stan:4222",
-        "nats_token": "",
-        "nats_ping_interval": "",
-        "nats_max_pings_outstanding": 0,
-        "nats_reconnect_wait": "",
-        "nats_max_reconnects": 0,
-        "stan_cluster": "",
-        "stan_connect_wait": "",
-        "stan_pings": [3,20],
-        "stan_subject": ""
+        "nats_url": "nats://stan:4222",
+        "stan_cluster": "test_cluster_name",
+        "stan_subject": "consumer.ru"
     }
 ]

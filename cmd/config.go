@@ -20,7 +20,7 @@ type config struct {
 		}
 		Stan struct {
 			Cluster     string        `requeried:"true"`
-			ConnectWait time.Duration `default:"10s" envconfig:"SRC_STAN_CONNECT_WAIT"`
+			ConnectWait time.Duration `default:"60s" envconfig:"SRC_STAN_CONNECT_WAIT"`
 			Pings       [2]int        `default:"3,20"`
 		}
 		Sub struct {
@@ -40,10 +40,10 @@ type config struct {
 		Loop    time.Duration `default:"3s"`
 		IfError time.Duration `default:"3s"`
 	}
-	StanClient       string `envconfig:"STAN_CLIENT" required:"true"`
-	SeparatorName    string `envconfig:"SEPARATOR_NAME" required:"true"`
-	SendToAllOnError bool   `default:"true" envconfig:"SEND_TO_ALL"`
-	DstFileLoc       string
+	StanClient       string       `envconfig:"STAN_CLIENT" required:"true"`
+	SeparatorName    string       `envconfig:"SEPARATOR_NAME" required:"true"`
+	SendToAllOnError bool         `default:"true" envconfig:"SEND_TO_ALL"`
+	DstFileLoc       string       `envconfig:"DST_FILE_LOC"`
 	LogLevel         logrus.Level `default:"info" envconfig:"LOG_LEVEL"`
 }
 

@@ -3,11 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	nats "github.com/nats-io/nats.go"
 	stan "github.com/nats-io/stan.go"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -106,9 +106,9 @@ func (sc stanConfig) connect(natsConn *nats.Conn) (stan.Conn, error) {
 	}
 
 	opts = append(opts, stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
-		log.Fatalf("stan connection lost, reason: %v\n", reason)
+		logrus.Fatalf("stan connection lost, reason: %v\n", reason)
 	}))
-	return stan.Connect(sc.clusterID, sc.clientID)
+	return stan.Connect(sc.clusterID, sc.clientID, opts...)
 }
 
 func (sc *subConfig) connect(stanConn stan.Conn) (stan.Subscription, error) {

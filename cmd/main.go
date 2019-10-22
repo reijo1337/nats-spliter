@@ -54,6 +54,7 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("create src stan: %v", err)
 	}
+	logrus.Info("connected to src")
 	// Destination NATS connects mapped on separate value
 	dstMap, err := parseDsts(cfg.DstFileLoc, cfg.StanClient)
 	if err != nil {
@@ -61,7 +62,6 @@ func main() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-
 	go func() {
 		delay := cfg.Delay.Loop
 		for {
