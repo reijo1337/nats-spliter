@@ -1,13 +1,25 @@
 [
     {
         "separator_value": "ru",
-        "nats_url": "nats://stan:4222",
+        "nats_url": "nats://10.99.100.156:4222",
         "stan_cluster": "test_cluster_name",
         "stan_subject": "consumer.ru"
     },
     {
+        "separator_value": "ua",
+        "nats_url": "nats://10.99.100.156:4222",
+        "stan_cluster": "test_cluster_name",
+        "stan_subject": "consumer.ua"
+    },
+    {
+        "separator_value": "us",
+        "nats_url": "nats://10.99.100.156:4222",
+        "stan_cluster": "test_cluster_name",
+        "stan_subject": "consumer.us"
+    },
+    {
         "separator_value": "hk",
-        "nats_url": "nats://stan:4222",
+        "nats_url": "nats://10.99.100.156:4222",
         "stan_cluster": "test_cluster_name",
         "stan_subject": "consumer.hk"
     }
